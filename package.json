@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "build:php-css": "tailwindcss -c php-app/tailwind.config.cjs -i php-app/resources/tailwind.css -o php-app/public/assets/tailwind.css --minify"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -16,5 +17,7 @@
     "react-dom": "latest",
     "vite": "latest"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
 }

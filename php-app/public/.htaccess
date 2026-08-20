@@ -1,0 +1,11 @@
+Options -Indexes
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+RewriteRule ^admin/login/?$ admin/index.php?page=login [L,QSA]
+RewriteRule ^admin/logout/?$ admin/index.php?page=logout [L,QSA]
+RewriteRule ^admin/?$ admin/index.php [L,QSA]
+RewriteRule ^setup/?$ setup/index.php [L,QSA]
+RewriteRule ^sitemap\.xml$ sitemap.php [L,QSA]
+RewriteRule ^(.*)$ index.php [L,QSA]
