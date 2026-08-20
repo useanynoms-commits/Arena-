@@ -3,10 +3,4 @@ dist/
 .env
 .env.*
 !.env.example
-/data/*
-!/data/.gitkeep
-!/data/.htaccess
-/uploads/*
-!/uploads/.gitkeep
-!/uploads/.htaccess
 .DS_Store
