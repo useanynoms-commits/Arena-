@@ -33,25 +33,33 @@ function normalize(result, products) {
   };
 }
 
+function availableModels() {
+  const preferred = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
+  const configuredFallbacks = (process.env.GEMINI_FALLBACK_MODELS || 'gemini-2.0-flash,gemini-1.5-flash')
+    .split(',').map((model) => model.trim()).filter(Boolean);
+  return [...new Set([preferred, ...configuredFallbacks])];
+}
+
 async function generateWithGemini(store, apiKey) {
   const products = Array.isArray(store.products) ? store.products.slice(0, 8) : [];
   const prompt = `Create concise ecommerce copy. Return JSON only with this exact shape: {"tagline":"","description":"","productDescriptions":[{"id":"","description":""}]}.\nRules: tagline max 9 words. Brand description max 38 words. Each product description max 18 words. Do not invent claims, materials, quantities, prices, shipping, or certifications. Write only for provided details.\nBrand=${compact(store.brandName, 80)}; category=${compact(store.category, 70)}; existing tagline=${compact(store.tagline, 90)}; brand notes=${compact(store.description, 220)}; products=${JSON.stringify(products.map((product) => ({ id: String(product.id), name: compact(product.name, 80), category: compact(product.category, 55), notes: compact(product.description, 120) })))}.`;
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.25, maxOutputTokens: 220, responseMimeType: 'application/json' },
-    }),
+  const body = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.25, maxOutputTokens: 220, responseMimeType: 'application/json' },
   });
-  if (!response.ok) {
-    const failure = await response.text();
-    throw new Error(`Gemini request failed (${response.status}): ${failure.slice(0, 180)}`);
+  const failures = [];
+  for (const model of availableModels()) {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) { failures.push(`${model}: HTTP ${response.status}`); continue; }
+      const responseData = await response.json();
+      const text = responseData.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('') || '{}';
+      return { content: normalize(JSON.parse(text), products), model };
+    } catch (error) { failures.push(`${model}: ${error.name || 'request failed'}`); }
   }
-  const responseData = await response.json();
-  const text = responseData.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('') || '{}';
-  return normalize(JSON.parse(text), products);
+  throw new Error(`No configured Gemini model succeeded. ${failures.join('; ')}`);
 }
 
 function remainingFor(sessionId) {
@@ -74,9 +82,9 @@ export default async function handler(req, res, suppliedKey) {
   try {
     const store = await readJson(req);
     if (!compact(store.brandName, 80)) return send(res, 400, { error: 'Add a brand name before generating content.' });
-    const content = await generateWithGemini(store, apiKey);
+    const result = await generateWithGemini(store, apiKey);
     record.count += 1;
-    return send(res, 200, { content, limit: SESSION_LIMIT, remaining: Math.max(0, SESSION_LIMIT - record.count) });
+    return send(res, 200, { content: result.content, model: result.model, limit: SESSION_LIMIT, remaining: Math.max(0, SESSION_LIMIT - record.count) });
   } catch (error) {
     return send(res, 502, { error: 'Gemini could not generate a draft right now. Please try again.', detail: error.message.slice(0, 200) });
   }
