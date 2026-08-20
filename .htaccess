@@ -1,0 +1,12 @@
+Options -Indexes
+RewriteEngine On
+
+# Static assets and uploads are served directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# The public storefront front controller. Query-string routes also work on hosts that disable rewrites.
+RewriteRule ^admin/?$ admin.php [L,QSA]
+RewriteRule ^setup/?$ setup.php [L,QSA]
+RewriteRule ^(.*)$ index.php [L,QSA]
