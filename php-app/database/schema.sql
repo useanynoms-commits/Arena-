@@ -13,7 +13,7 @@ CREATE TABLE tenants (
   primary_color CHAR(7) NOT NULL DEFAULT '#6D5EF2',
   secondary_color CHAR(7) NOT NULL DEFAULT '#E9E6FF',
   accent_color CHAR(7) NOT NULL DEFAULT '#F37B5B',
-  theme ENUM('minimal','neumorphism','skeuomorphism','glassmorphism','claymorphism','maximalism','brutalism') NOT NULL DEFAULT 'minimal',
+  theme ENUM('minimal','neomorphism','skeuomorphism','glassmorphism','claymorphism','maximalism','brutalism') NOT NULL DEFAULT 'minimal',
   show_brand_name TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
